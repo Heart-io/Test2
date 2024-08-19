@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar System Simulator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+        }
+
+        #gameCanvas {
+            display: block;
+            margin: auto;
+        }
+
+        #infoPanel {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="infoPanel">
+        <p id="infoText">Welcome to the Solar System Simulator!</p>
+    </div>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const zoomLevels = [0.5, 1, 2, 5, 10];
+        let zoomIndex = 1;
+        let scale = zoomLevels[zoomIndex];
+
+        const sun = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            size: 50,
+            color: 'yellow'
+        };
+
+        const planets = [
+            { name: 'Mercury', size: 10, distance: 60, color: 'gray', angle: Math.random() * 2 * Math.PI, speed: 0.02, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Mercury is the closest planet to the Sun.' },
+            { name: 'Venus', size: 12, distance: 90, color: 'orange', angle: Math.random() * 2 * Math.PI, speed: 0.015, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Venus has a thick atmosphere full of carbon dioxide.' },
+            { name: 'Earth', size: 14, distance: 120, color: 'blue', angle: Math.random() * 2 * Math.PI, speed: 0.01, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Earth is the only planet known to support life.' },
+            { name: 'Mars', size: 12, distance: 150, color: 'red', angle: Math.random() * 2 * Math.PI, speed: 0.008, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Mars is known as the Red Planet due to iron oxide on its surface.' },
+            { name: 'Jupiter', size: 30, distance: 200, color: 'brown', angle: Math.random() * 2 * Math.PI, speed: 0.005, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Jupiter is the largest planet in our solar system.' },
+            { name: 'Saturn', size: 28, distance: 250, color: 'gold', angle: Math.random() * 2 * Math.PI, speed: 0.004, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Saturn is famous for its stunning ring system.' },
+            { name: 'Uranus', size: 24, distance: 300, color: 'lightblue', angle: Math.random() * 2 * Math.PI, speed: 0.003, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Uranus rotates on its side, making its seasons extreme.' },
+            { name: 'Neptune', size: 22, distance: 350, color: 'darkblue', angle: Math.random() * 2 * Math.PI, speed: 0.002, texture: 'https://img.icons8.com/ios/50/000000/planet.png', fact: 'Neptune is known for its deep blue color and strong winds.' }
+        ];
+
+        const starCount = 200;
+        const stars = [];
+
+        function createStars() {
+            stars.length = 0;
+            for (let i = 0; i < starCount; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2
+                });
+            }
+        }
+
+        function drawStars() {
+            ctx.fillStyle = 'white';
+            stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawSun() {
+            ctx.fillStyle = sun.color;
+            ctx.beginPath();
+            ctx.arc(sun.x, sun.y, sun.size * scale, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawPlanets() {
+            planets.forEach(planet => {
+                planet.angle += planet.speed; // Update angle for orbit
+
+                const x = sun.x + Math.cos(planet.angle) * planet.distance;
+                const y = sun.y + Math.sin(planet.angle) * planet.distance;
+
+                // Draw planet texture
+                const img = new Image();
+                img.src = planet.texture;
+                img.onload = () => {
+                    ctx.drawImage(img, x - planet.size * scale, y - planet.size * scale, planet.size * scale * 2, planet.size * scale * 2);
+                };
+
+                // Draw planet label
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.fillText(planet.name, x + planet.size * scale + 5, y);
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(scale, scale);
+            ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+            drawStars();
+            drawSun();
+            drawPlanets();
+
+            ctx.restore();
+            requestAnimationFrame(draw);
+        }
+
+        function displayInfo(message) {
+            document.getElementById('infoText').innerText = message;
+        }
+
+        function isPointInPlanet(x, y, planet) {
+            const distance = Math.sqrt((x - planet.x) ** 2 + (y - planet.y) ** 2);
+            return distance <= planet.size * scale;
+        }
+
+        canvas.addEventListener('click', (event) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            planets.forEach(planet => {
+                const planetX = sun.x + Math.cos(planet.angle) * planet.distance;
+                const planetY = sun.y + Math.sin(planet.angle) * planet.distance;
+
+                if (isPointInPlanet(x, y, { x: planetX, y: planetY, size: planet.size })) {
+                    displayInfo(`: `);
+                }
+            });
+        });
+
+        // Zoom controls
+        window.addEventListener('keydown', (event) => {
+            if (event.key === '+' || event.key === '=') {
+                if (zoomIndex < zoomLevels.length - 1) {
+                    zoomIndex++;
+                    scale = zoomLevels[zoomIndex];
+                }
+            } else if (event.key === '-') {
+                if (zoomIndex > 0) {
+                    zoomIndex--;
+                    scale = zoomLevels[zoomIndex];
+                }
+            }
+            displayInfo(`Zoom level: `);
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            createStars(); // Recreate stars to fit new canvas size
+            draw(); // Redraw the scene with updated canvas size
+        });
+
+        createStars();
+        draw();
+    </script>
+</body>
+</html>
+
